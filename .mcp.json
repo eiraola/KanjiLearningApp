@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "unity": {
+      "type": "stdio",
+      "command": "C:\\Users\\emont\\AppData\\Local\\Unity\\bin\\unity.exe",
+      "args": ["mcp", "--project-path", "F:/UnityProjects/KanjiLearning"]
+    }
+  }
+}

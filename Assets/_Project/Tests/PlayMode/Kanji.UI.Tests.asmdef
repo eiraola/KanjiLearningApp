@@ -1,0 +1,14 @@
+{
+  "name": "Kanji.UI.Tests",
+  "rootNamespace": "Kanji.UI.Tests",
+  "references": ["Kanji.Core", "Kanji.UI", "UnityEngine.UI", "Unity.TextMeshPro", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

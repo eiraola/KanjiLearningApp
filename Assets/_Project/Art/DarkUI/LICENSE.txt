@@ -1,0 +1,4 @@
+﻿Dark Theme UI - subset of sprites
+Source: Unity Asset Store package "Dark Theme UI" (Textures Materials / GUI Skins) by Giniel Villacote.
+Licensed under the Unity Asset Store End User License Agreement (https://unity.com/legal/as-terms).
+Only 15 sprites are kept (buttons, input field, panels, icons). Redistribution of the raw assets outside a product build is not permitted.

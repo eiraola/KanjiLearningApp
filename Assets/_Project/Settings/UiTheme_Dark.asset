@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f73100868ae6ade4ca25050ee2827697, type: 3}
+  m_Name: UiTheme_Dark
+  m_EditorClassIdentifier: Kanji.UI::Kanji.UI.UiTheme
+  _background: {r: 0.078431375, g: 0.09019608, b: 0.10980392, a: 1}
+  _surface: {r: 0.11372549, g: 0.13333334, b: 0.16470589, a: 1}
+  _surfaceRaised: {r: 0.15294118, g: 0.1764706, b: 0.21960784, a: 1}
+  _border: {r: 0.22745098, g: 0.25490198, b: 0.3137255, a: 1}
+  _textPrimary: {r: 0.9098039, g: 0.91764706, b: 0.9411765, a: 1}
+  _textSecondary: {r: 0.6392157, g: 0.6627451, b: 0.72156864, a: 1}
+  _textOnAccent: {r: 1, g: 1, b: 1, a: 1}
+  _primary: {r: 0.76862746, g: 0.1882353, b: 0.16862746, a: 1}
+  _primaryPressed: {r: 0.6392157, g: 0.14509805, b: 0.1254902, a: 1}
+  _secondary: {r: 0.15294118, g: 0.1764706, b: 0.21960784, a: 1}
+  _secondaryPressed: {r: 0.22745098, g: 0.25490198, b: 0.3137255, a: 1}
+  _success: {r: 0.105882354, g: 0.47843137, b: 0.22745098, a: 1}
+  _successPressed: {r: 0.078431375, g: 0.3882353, b: 0.18039216, a: 1}
+  _danger: {r: 0.76862746, g: 0.1882353, b: 0.16862746, a: 1}
+  _dangerPressed: {r: 0.6392157, g: 0.14509805, b: 0.1254902, a: 1}
+  _disabled: {r: 0.15294118, g: 0.1764706, b: 0.21960784, a: 1}
+  _disabledText: {r: 0.41960785, g: 0.44313726, b: 0.5019608, a: 1}
+  _link: {r: 0.13333334, g: 0.827451, b: 0.93333334, a: 1}
+  _error: {r: 1, g: 0.5411765, b: 0.5019608, a: 1}
+  _warningSurface: {r: 0.29411766, g: 0.20392157, b: 0.0627451, a: 1}
+  _scrim: {r: 0, g: 0, b: 0, a: 0.65}
+  _fadeColor: {r: 0, g: 0, b: 0, a: 1}
+  _buttonSprite: {fileID: 21300000, guid: 070234f74573c7c4c868e9219436aa92, type: 3}
+  _panelSprite: {fileID: 21300000, guid: 070234f74573c7c4c868e9219436aa92, type: 3}
+  _inputSprite: {fileID: 21300000, guid: a081cf09f4f92fe4e9a1397f5c06410d, type: 3}
+  _dividerSprite: {fileID: 21300000, guid: aeeb86843181abf48a9c1240cd0be40d, type: 3}
+  _circleSprite: {fileID: 21300000, guid: 9203bae5ae552514b9313a29f70c183c, type: 3}
+  _iconBack: {fileID: 21300000, guid: 6b2aeacb5e8a9e642bf0df4d7cd5f05f, type: 3}
+  _iconClose: {fileID: 21300000, guid: 81f6451063ecf1d4da15a82c7b16f379, type: 3}
+  _iconTrash: {fileID: 21300000, guid: e1a862904ef44204eb364af6b2dcc221, type: 3}
+  _iconCheck: {fileID: 21300000, guid: 382437d1fdcf67847ba5bd79c89fa92c, type: 3}
+  _iconCross: {fileID: 21300000, guid: 34a6f7861463fca46abb654a13a75df6, type: 3}
+  _iconPlus: {fileID: 21300000, guid: 55ebfd402e9727a43a88b9e695b87478, type: 3}
+  _iconBooks: {fileID: 21300000, guid: fa0844cd42b434b4785baff72f9270c8, type: 3}
+  _iconBook: {fileID: 21300000, guid: d6bc47b70c4317849bbe92486cd75b0b, type: 3}
+  _slicedPpuMultiplier: 0.8
+  _regular: {fileID: 11400000, guid: 84d6db81e26887e44a29ae4e01dcddd8, type: 2}
+  _bold: {fileID: 11400000, guid: c678d539cfaf6294f8eb5fffa41b4005, type: 2}
+  _displaySize: 96
+  _titleSize: 56
+  _buttonSize: 52
+  _readingSize: 48
+  _bodySize: 44
+  _captionSize: 36
+  _kanjiMinSize: 96
+  _kanjiMaxSize: 220
+  _screenFadeOutSeconds: 0.2
+  _screenFadeInSeconds: 0.2
+  _popupFadeSeconds: 0.15

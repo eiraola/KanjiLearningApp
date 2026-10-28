@@ -1,0 +1,5 @@
+<linker>
+  <assembly fullname="I18N" preserve="all" ignoreIfMissing="1"/>
+  <assembly fullname="I18N.CJK" preserve="all" ignoreIfMissing="1"/>
+  <assembly fullname="System.Text.Encoding.CodePages" preserve="all" ignoreIfMissing="1"/>
+</linker>

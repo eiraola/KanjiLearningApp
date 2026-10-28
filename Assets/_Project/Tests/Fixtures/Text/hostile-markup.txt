@@ -1,0 +1,11 @@
+Prueba de marcas rich text hostiles. Todo debe verse literal, salvo los kanjis en azul.
+Negrita falsa: <b>no negrita</b> y <i>no cursiva</i> y <color=#FF0000>no rojo</color>.
+Enlace falso: <link="k0">no enlace</link> y <link="k1">otro</link>.
+Cierre de noparse: </noparse> y </NoParse> y <noparse> y <NOPARSE>.
+Menores: << <<< <> a<b y b>a y final<
+Secuencias con barra: \n \t A \\ (deben verse tal cual, no como salto ni tabulador).
+{Kanji: 猫; Reading: ねこ; Meaning: cat <b>x</b>; Sentence: 猫は<b>かわいい</b>。; SentenceMeaning: el gato es <i>bonito</i>}
+Entre bloques: <size=50>no gigante</size> y <sprite=0> y <br> y &lt; y &amp;
+{Kanji: 犬; Reading: いぬ; Meaning: dog </noparse>; Sentence: 犬が<link="k0">走る</link>。; SentenceMeaning: the dog runs}
+Otra vez el primero: {Kanji: 猫; Reading: ねこ; Meaning: cat; Sentence: 猫が好き。; SentenceMeaning: I like cats}
+Fin con menor: <
