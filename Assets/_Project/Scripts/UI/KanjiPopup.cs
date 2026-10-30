@@ -47,17 +47,29 @@ namespace Kanji.UI
         [SerializeField] private Button _btnRemoveDifficult;
         [SerializeField] private Button _btnCloseDifficult;
         [SerializeField] private Button _btnReveal;
+        [SerializeField] private CardSwipe _swipe;
         private bool _studyMode;
 
         private void Awake()
         {
             if (_btnRemoveDifficult != null) _btnRemoveDifficult.onClick.AddListener(RemoveFromDifficult);
             if (_btnCloseDifficult != null) _btnCloseDifficult.onClick.AddListener(Close);
-            _btnKnew.onClick.AddListener(() => Resolve(KanjiPopupResult.Knew));
-            _btnDidntKnow.onClick.AddListener(() => Resolve(KanjiPopupResult.DidntKnow));
+            _btnKnew.onClick.AddListener(AnswerKnew);
+            _btnDidntKnow.onClick.AddListener(AnswerDidntKnow);
+            if (_swipe != null)
+            {
+                // Same handlers as the buttons: right = green, left = red, only while that row is shown.
+                _swipe.CanSwipe = () => _open && _answerRow != null && _answerRow.activeSelf;
+                _swipe.SwipedGreen += AnswerKnew;
+                _swipe.SwipedRed += AnswerDidntKnow;
+            }
             if (_btnAddDifficult != null) _btnAddDifficult.onClick.AddListener(AddToDifficult);
             if (_btnReveal != null) _btnReveal.onClick.AddListener(Reveal);
         }
+
+        private void AnswerKnew() => Resolve(KanjiPopupResult.Knew);
+
+        private void AnswerDidntKnow() => Resolve(KanjiPopupResult.DidntKnow);
 
         private DifficultKanjiList _fixedList; // fallback list when no story id is given (unit tests only)
         private DifficultKanjiStore _store;
@@ -190,6 +202,7 @@ namespace Kanji.UI
             _onClosed = onClosed;
             _open = true;
             _entry = entry;
+            if (_swipe != null) _swipe.ResetPose();
             RefreshDifficultButton();
             _kanji.text = entry.Kanji;
             SetRow(_sentence.gameObject, _sentence, entry.Sentence);

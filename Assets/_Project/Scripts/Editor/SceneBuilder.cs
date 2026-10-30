@@ -291,6 +291,14 @@ namespace Kanji.Editor
             var reveal = NewButton("BtnReveal", panel, UiStrings.Resolve, 160, ButtonStyle.Primary);
             reveal.gameObject.SetActive(false);
 
+            var swipe = panel.gameObject.AddComponent<CardSwipe>();
+            var swipeSo = new SerializedObject(swipe);
+            swipeSo.FindProperty("_scroll").objectReferenceValue = scroll;
+            swipeSo.FindProperty("_tintTarget").objectReferenceValue = panel.GetComponent<Image>();
+            swipeSo.FindProperty("_greenTint").colorValue = _theme.Success;
+            swipeSo.FindProperty("_redTint").colorValue = _theme.Danger;
+            swipeSo.ApplyModifiedPropertiesWithoutUndo();
+
             var so = new SerializedObject(popup);
             so.FindProperty("_kanji").objectReferenceValue = kanji;
             so.FindProperty("_sentence").objectReferenceValue = sentence;
@@ -308,6 +316,7 @@ namespace Kanji.Editor
             so.FindProperty("_btnCloseDifficult").objectReferenceValue = closeDifficult;
             so.FindProperty("_answerRow").objectReferenceValue = answerRow.gameObject;
             so.FindProperty("_btnReveal").objectReferenceValue = reveal;
+            so.FindProperty("_swipe").objectReferenceValue = swipe;
             so.FindProperty("_addDifficultLabel").objectReferenceValue = addLabel;
             so.FindProperty("_addDifficultIcon").objectReferenceValue = addIcon;
             so.FindProperty("_iconPlus").objectReferenceValue = _theme.IconPlus;

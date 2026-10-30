@@ -117,13 +117,21 @@ Objetivo: botón "Estudiar kanjis" en la lista de complicados de una historia (p
 - T48 Revisión, APK y retro. (REV)
 Prueba del usuario: estudiar, ver % y círculos (llenar a 5; fallar no lo cambia).
 
-### S12 — Nueva portada, icono y arranque sin logo (en curso)
+### S12 — Nueva portada, icono y arranque sin logo (hecho)
 Objetivo: la imagen KanjiBook (fondo blanco exterior transparente) como portada grande con «Leer historias» debajo, como icono de la app y sin logo de Unity al arrancar; resto de opciones en un menú lateral.
 - T49 Recorte e icono (normal + adaptativo). (PRG)
 - T50 Arranque sin logo de Unity. (PRG)
 - T51 Portada nueva + menú lateral. (PRG)
 - T52 Compilar, tests, APK y retro. (REV)
 Prueba del usuario: icono, arranque, portada y menú lateral.
+
+### S13 — Deslizar la tarjeta para responder verde/rojo (hecho)
+Objetivo: en el popup (lectura y estudio de complicados), arrastrar la tarjeta a un lado pasado un umbral cuenta como el botón verde o rojo de ese lado; si no, vuelve.
+- T53 Componente de deslizar (umbral, giro, tinte, animación). (PRG)
+- T54 Conectar en lectura y estudio, mismo efecto que los botones. (PRG)
+- T55 Tests PlayMode del gesto. (PRG)
+- T56 Revisión, APK y retro. (REV)
+Prueba del usuario: arrastrar poco vuelve; a cada lado cuenta como su botón; el scroll vertical sigue funcionando.
 
 ## Preguntas abiertas del GDD: cuándo responder
 | Pregunta | Responder antes de | Recomendado |
@@ -138,9 +146,10 @@ Prueba del usuario: icono, arranque, portada y menú lateral.
 | P7 Migración de complicados globales | S09 | **RESPONDIDA:** primera historia que contenga el kanji; no asignables descartados con toast |
 | P8 Borrar historia con complicados | S09 | **RESPONDIDA:** se borra también su lista |
 | P9 Fallo en estudio y círculo | S11 | **RESPONDIDA:** el fallo no cambia el círculo |
+| P10 Dirección del deslizamiento | S13 | **RESPONDIDA:** seguir los botones: derecha = verde, izquierda = rojo |
 
 ## Presupuesto de tokens (relativo)
-S01 medio · S02 alto (nativo + dispositivo) · S03 medio · S04 medio · S05 alto · S06 medio · S07 bajo · S08 medio-bajo · S09 medio (migración y modelo) · S10 medio · S11 bajo (sin subagentes) · S12 bajo (sin subagentes).
+S01 medio · S02 alto (nativo + dispositivo) · S03 medio · S04 medio · S05 alto · S06 medio · S07 bajo · S08 medio-bajo · S09 medio (migración y modelo) · S10 medio · S11 bajo (sin subagentes) · S12 bajo (sin subagentes) · S13 bajo (sin subagentes).
 Reglas de ahorro:
 - Encargos con solo nº de sprint, tarea y rutas; sin pegar documentos.
 - Leer secciones concretas (offset/limit) en vez de ficheros enteros; no releer lo ya leído.
