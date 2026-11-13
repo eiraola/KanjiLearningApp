@@ -11,6 +11,7 @@ namespace Kanji.UI
         [SerializeField] private SideMenu _sideMenu;
         [SerializeField] private Button _loadStoriesButton;
         [SerializeField] private Button _difficultListButton;
+        [SerializeField] private Button _wordListsButton;
         [SerializeField] private Button _exitButton;
 
         public void Init(ScreenNavigator navigator, Action quit)
@@ -19,6 +20,7 @@ namespace Kanji.UI
             _menuButton.onClick.AddListener(_sideMenu.Open);
             _loadStoriesButton.onClick.AddListener(() => FromMenu(() => navigator.Push(ScreenId.LoadStories)));
             _difficultListButton.onClick.AddListener(() => FromMenu(() => navigator.Push(ScreenId.DifficultList)));
+            _wordListsButton.onClick.AddListener(() => FromMenu(() => navigator.Push(ScreenId.WordLists)));
             _exitButton.onClick.AddListener(() => FromMenu(quit));
         }
 

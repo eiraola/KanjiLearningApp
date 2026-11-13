@@ -48,8 +48,10 @@ namespace Kanji.Editor
 
             var reader = BuildReaderPrefab();
             var stats = BuildStatsPrefab();
+            var wordLists = BuildWordListsPrefab();
+            var wordList = BuildWordListPrefab();
 
-            BuildScene(new ScreenView[] { home, load, list, difficult, difficultGrid, reader, stats });
+            BuildScene(new ScreenView[] { home, load, list, difficult, difficultGrid, reader, stats, wordLists, wordList });
 
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
@@ -107,6 +109,10 @@ namespace Kanji.Editor
             var kanjiPopup = BuildKanjiPopup(popupLayer);
             var confirmPopup = BuildConfirmPopup(popupLayer);
             var nameInputPopup = BuildNameInputPopup(popupLayer);
+            var wordCardPopup = BuildWordCardPopup(popupLayer);
+            var wordListMenuPopup = BuildWordListMenuPopup(popupLayer);
+            var addWordsPopup = BuildAddWordsPopup(popupLayer);
+            var duplicateWordsPopup = BuildDuplicateWordsPopup(popupLayer);
             var toast = BuildToast(popupLayer);
 
             var transition = BuildTransitionOverlay(canvasGo.transform, inputGroup); // last child: above popups
@@ -126,6 +132,10 @@ namespace Kanji.Editor
             so.FindProperty("_kanjiPopup").objectReferenceValue = kanjiPopup;
             so.FindProperty("_confirmPopup").objectReferenceValue = confirmPopup;
             so.FindProperty("_nameInputPopup").objectReferenceValue = nameInputPopup;
+            so.FindProperty("_wordCardPopup").objectReferenceValue = wordCardPopup;
+            so.FindProperty("_wordListMenuPopup").objectReferenceValue = wordListMenuPopup;
+            so.FindProperty("_addWordsPopup").objectReferenceValue = addWordsPopup;
+            so.FindProperty("_duplicateWordsPopup").objectReferenceValue = duplicateWordsPopup;
             so.FindProperty("_backButtonRouter").objectReferenceValue = router;
             var arr = so.FindProperty("_screenPrefabs");
             arr.arraySize = screenPrefabs.Length;
@@ -603,7 +613,7 @@ namespace Kanji.Editor
 
             var bRead = NewButton("BtnReadStories", hero, UiStrings.ReadStories, 176, ButtonStyle.Primary);
 
-            var menu = BuildSideMenu(root, out var bLoad, out var bDiff, out var bQuit);
+            var menu = BuildSideMenu(root, out var bLoad, out var bDiff, out var bLists, out var bQuit);
 
             var so = new SerializedObject(screen);
             so.FindProperty("_storyListButton").objectReferenceValue = bRead;
@@ -611,6 +621,7 @@ namespace Kanji.Editor
             so.FindProperty("_sideMenu").objectReferenceValue = menu;
             so.FindProperty("_loadStoriesButton").objectReferenceValue = bLoad;
             so.FindProperty("_difficultListButton").objectReferenceValue = bDiff;
+            so.FindProperty("_wordListsButton").objectReferenceValue = bLists;
             so.FindProperty("_exitButton").objectReferenceValue = bQuit;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -664,7 +675,7 @@ namespace Kanji.Editor
             return button;
         }
 
-        private static SideMenu BuildSideMenu(RectTransform screenRoot, out Button load, out Button difficult, out Button quit)
+        private static SideMenu BuildSideMenu(RectTransform screenRoot, out Button load, out Button difficult, out Button lists, out Button quit)
         {
             var root = NewRect("SideMenu", screenRoot);
             Stretch(root);
@@ -699,6 +710,7 @@ namespace Kanji.Editor
 
             load = NewButton("BtnLoadStories", panel, UiStrings.LoadStories, 160, ButtonStyle.Primary);
             difficult = NewButton("BtnDifficult", panel, UiStrings.DifficultKanjis, 160, ButtonStyle.Primary);
+            lists = NewButton("BtnWordLists", panel, UiStrings.WordLists, 160, ButtonStyle.Primary);
             var spacer = NewRect("Spacer", panel);
             spacer.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
             quit = NewButton("BtnQuit", panel, UiStrings.Quit, 144, ButtonStyle.Secondary);
@@ -1446,6 +1458,643 @@ namespace Kanji.Editor
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             return prefab.GetComponent<ScreenView>();
+        }
+
+        // ---------- S14: word lists ----------
+
+        private static ScreenView BuildWordListsPrefab()
+        {
+            var rowPrefab = BuildSimpleRowPrefab();
+            var root = NewScreenRoot("WordLists", ScreenId.WordLists, out WordListsScreen screen);
+            var back = BuildTopBar(root, UiStrings.WordLists, out _);
+            var add = NewTopBarRightButton(root.Find("TopBar"), "BtnAddList", false);
+
+            var content = NewRect("Content", root);
+            Stretch(content);
+            content.offsetMin = new Vector2(48, 48);
+            content.offsetMax = new Vector2(-48, -144);
+            var scroll = BuildVerticalList(content, out var list);
+            var empty = BuildEmptyMessage(content, UiStrings.EmptyWordLists);
+
+            var so = new SerializedObject(screen);
+            so.FindProperty("_backButton").objectReferenceValue = back;
+            so.FindProperty("_addButton").objectReferenceValue = add;
+            so.FindProperty("_listScroll").objectReferenceValue = scroll;
+            so.FindProperty("_content").objectReferenceValue = list;
+            so.FindProperty("_rowPrefab").objectReferenceValue = rowPrefab;
+            so.FindProperty("_emptyMessage").objectReferenceValue = empty;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return SavePrefab(root.gameObject, "WordLists");
+        }
+
+        private static ScreenView BuildWordListPrefab()
+        {
+            var rowPrefab = BuildWordRowPrefab();
+            var root = NewScreenRoot("WordList", ScreenId.WordList, out WordListScreen screen);
+            var back = BuildTopBar(root, "", out var title);
+            title.overflowMode = TextOverflowModes.Ellipsis;
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.richText = false;
+            var menu = NewTopBarRightButton(root.Find("TopBar"), "BtnListMenu", true);
+
+            // S15: All / Difficult filter under the top bar.
+            var filterBar = NewRect("FilterBar", root);
+            filterBar.anchorMin = new Vector2(0, 1);
+            filterBar.anchorMax = new Vector2(1, 1);
+            filterBar.pivot = new Vector2(0.5f, 1);
+            filterBar.offsetMin = new Vector2(48, -144 - 32 - 128);
+            filterBar.offsetMax = new Vector2(-48, -144 - 32);
+            var fhlg = filterBar.gameObject.AddComponent<HorizontalLayoutGroup>();
+            fhlg.spacing = 24;
+            fhlg.childControlWidth = true;
+            fhlg.childControlHeight = true;
+            fhlg.childForceExpandWidth = true;
+            fhlg.childForceExpandHeight = true;
+            var filterAll = NewButton("BtnFilterAll", filterBar, "", 128, ButtonStyle.Primary);
+            var filterDifficult = NewButton("BtnFilterDifficult", filterBar, "", 128, ButtonStyle.Secondary);
+            filterBar.gameObject.SetActive(false);
+
+            var content = NewRect("Content", root);
+            Stretch(content);
+            content.offsetMin = new Vector2(48, 48);
+            content.offsetMax = new Vector2(-48, -144 - 32 - 128);
+            var scroll = BuildVerticalList(content, out var list);
+            var empty = BuildEmptyMessage(content, UiStrings.EmptyWordList);
+
+            var so = new SerializedObject(screen);
+            so.FindProperty("_backButton").objectReferenceValue = back;
+            so.FindProperty("_menuButton").objectReferenceValue = menu;
+            so.FindProperty("_filterBar").objectReferenceValue = filterBar.gameObject;
+            so.FindProperty("_filterAll").objectReferenceValue = filterAll;
+            so.FindProperty("_filterDifficult").objectReferenceValue = filterDifficult;
+            so.FindProperty("_filterAllLabel").objectReferenceValue = filterAll.GetComponentInChildren<TMP_Text>();
+            so.FindProperty("_filterDifficultLabel").objectReferenceValue = filterDifficult.GetComponentInChildren<TMP_Text>();
+            so.FindProperty("_title").objectReferenceValue = title;
+            so.FindProperty("_listScroll").objectReferenceValue = scroll;
+            so.FindProperty("_content").objectReferenceValue = list;
+            so.FindProperty("_rowPrefab").objectReferenceValue = rowPrefab;
+            so.FindProperty("_emptyMessage").objectReferenceValue = empty;
+            so.FindProperty("_theme").objectReferenceValue = _theme;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return SavePrefab(root.gameObject, "WordList");
+        }
+
+        /// <summary>Top-right 144x144 icon button: "+" or a vertical "more options" (three dots).</summary>
+        private static Button NewTopBarRightButton(Transform topBar, string name, bool dots)
+        {
+            var rt = NewRect(name, topBar);
+            rt.anchorMin = rt.anchorMax = new Vector2(1, 0.5f);
+            rt.pivot = new Vector2(1, 0.5f);
+            rt.sizeDelta = new Vector2(144, 144);
+            rt.anchoredPosition = new Vector2(-24, 0);
+            var hit = rt.gameObject.AddComponent<Image>();
+            hit.color = Color.clear; // touch area only
+            var button = rt.gameObject.AddComponent<Button>();
+            button.targetGraphic = hit;
+            button.transition = Selectable.Transition.None;
+
+            if (dots)
+            {
+                for (int i = -1; i <= 1; i++)
+                {
+                    var dot = NewRect("Dot", rt);
+                    dot.anchorMin = dot.anchorMax = new Vector2(0.5f, 0.5f);
+                    dot.sizeDelta = new Vector2(16, 16);
+                    dot.anchoredPosition = new Vector2(0, i * 26);
+                    var img = dot.gameObject.AddComponent<Image>();
+                    img.sprite = FilledCircle();
+                    img.preserveAspect = true;
+                    img.color = _theme.TextPrimary;
+                    img.raycastTarget = false;
+                }
+            }
+            else
+            {
+                var iconRt = NewRect("Icon", rt);
+                iconRt.anchorMin = iconRt.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRt.sizeDelta = new Vector2(72, 72);
+                var icon = iconRt.gameObject.AddComponent<Image>();
+                icon.sprite = _theme.IconPlus;
+                icon.preserveAspect = true;
+                icon.color = _theme.TextPrimary;
+                icon.raycastTarget = false;
+            }
+            return button;
+        }
+
+        private static ScrollRect BuildVerticalList(RectTransform parent, out RectTransform list)
+        {
+            var scrollRt = NewRect("ListScroll", parent);
+            Stretch(scrollRt);
+            scrollRt.gameObject.AddComponent<Image>().color = Color.clear; // catches drags in gaps
+            var scroll = scrollRt.gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.inertia = true;
+
+            var viewport = NewRect("Viewport", scrollRt);
+            Stretch(viewport);
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            list = NewRect("Content", viewport);
+            list.anchorMin = new Vector2(0, 1);
+            list.anchorMax = new Vector2(1, 1);
+            list.pivot = new Vector2(0.5f, 1);
+            list.sizeDelta = Vector2.zero;
+            list.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var vlg = list.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 16;
+            vlg.padding = new RectOffset(0, 0, 48, 48);
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            scroll.viewport = viewport;
+            scroll.content = list;
+            return scroll;
+        }
+
+        private static TextMeshProUGUI BuildEmptyMessage(RectTransform parent, string text)
+        {
+            var empty = NewLabel("EmptyMessage", parent, text, _theme.BodySize, FontStyles.Normal, _theme.TextSecondary);
+            Stretch(empty.rectTransform);
+            empty.rectTransform.offsetMin = new Vector2(24, 24);
+            empty.rectTransform.offsetMax = new Vector2(-24, -24);
+            empty.raycastTarget = false;
+            empty.gameObject.SetActive(false);
+            return empty;
+        }
+
+        private static SimpleListRow BuildSimpleRowPrefab()
+        {
+            var rt = NewRect("SimpleRow", null);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = _theme.PanelSprite;
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = _theme.SlicedPpuMultiplier;
+            img.color = Color.white;
+            var le = rt.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 168;
+            le.minHeight = 168;
+
+            var button = rt.gameObject.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.transition = Selectable.Transition.ColorTint;
+            var colors = button.colors;
+            colors.normalColor = _theme.Surface;
+            colors.highlightedColor = _theme.Surface;
+            colors.selectedColor = _theme.Surface;
+            colors.pressedColor = _theme.SurfaceRaised;
+            colors.disabledColor = _theme.Disabled;
+            colors.colorMultiplier = 1f;
+            button.colors = colors;
+
+            var hlg = rt.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.padding = new RectOffset(32, 32, 24, 24);
+            hlg.spacing = 24;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
+
+            var title = NewLabel("Title", rt, "", _theme.BodySize, FontStyles.Normal, _theme.TextPrimary);
+            title.alignment = TextAlignmentOptions.MidlineLeft;
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.overflowMode = TextOverflowModes.Ellipsis;
+            title.richText = false;
+            title.raycastTarget = false;
+            title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+
+            var subtitle = NewLabel("Subtitle", rt, "", _theme.CaptionSize, FontStyles.Normal, _theme.TextSecondary);
+            subtitle.alignment = TextAlignmentOptions.MidlineRight;
+            subtitle.textWrappingMode = TextWrappingModes.NoWrap;
+            subtitle.overflowMode = TextOverflowModes.Ellipsis;
+            subtitle.richText = false;
+            subtitle.raycastTarget = false;
+
+            var row = rt.gameObject.AddComponent<SimpleListRow>();
+            var so = new SerializedObject(row);
+            so.FindProperty("_button").objectReferenceValue = button;
+            so.FindProperty("_title").objectReferenceValue = title;
+            so.FindProperty("_subtitle").objectReferenceValue = subtitle;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var path = "Assets/_Project/Prefabs/Widgets/SimpleRow.prefab";
+            var prefab = PrefabUtility.SaveAsPrefabAsset(rt.gameObject, path);
+            Object.DestroyImmediate(rt.gameObject);
+            return prefab.GetComponent<SimpleListRow>();
+        }
+
+        /// <summary>80x80 track + radial fill (successes / 5) as a layout child of <paramref name="parent"/>.</summary>
+        private static Image BuildProgressCircle(Transform parent, string name, Color color)
+        {
+            var track = NewRect(name, parent);
+            var trackLe = track.gameObject.AddComponent<LayoutElement>();
+            trackLe.preferredWidth = 80;
+            trackLe.preferredHeight = 80;
+            var trackImg = track.gameObject.AddComponent<Image>();
+            trackImg.sprite = _theme.CircleSprite;
+            trackImg.color = new Color(_theme.TextSecondary.r, _theme.TextSecondary.g, _theme.TextSecondary.b, 0.25f);
+            trackImg.raycastTarget = false;
+            var fillRt = NewRect("ProgressFill", track);
+            Stretch(fillRt);
+            var fill = fillRt.gameObject.AddComponent<Image>();
+            fill.sprite = _theme.CircleSprite;
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Radial360;
+            fill.fillOrigin = (int)Image.Origin360.Top;
+            fill.fillClockwise = true;
+            fill.fillAmount = 0f;
+            fill.color = color;
+            fill.raycastTarget = false;
+            return fill;
+        }
+
+        // The theme's CircleSprite is a 2 px ring; dots and marks need a solid disc.
+        private static Sprite FilledCircle() => AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+
+        private static WordListRow BuildWordRowPrefab()
+        {
+            var rt = NewRect("WordRow", null);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = _theme.PanelSprite;
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = _theme.SlicedPpuMultiplier;
+            img.color = Color.white;
+            var le = rt.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 168;
+            le.minHeight = 168;
+
+            var button = rt.gameObject.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.transition = Selectable.Transition.ColorTint;
+            var colors = button.colors;
+            colors.normalColor = _theme.Surface;
+            colors.highlightedColor = _theme.Surface;
+            colors.selectedColor = _theme.Surface;
+            colors.pressedColor = _theme.SurfaceRaised;
+            colors.disabledColor = _theme.Disabled;
+            colors.colorMultiplier = 1f;
+            button.colors = colors;
+
+            var hlg = rt.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.padding = new RectOffset(32, 32, 24, 24);
+            hlg.spacing = 24;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+
+            var word = NewLabel("Word", rt, "", _theme.BodySize, FontStyles.Normal, _theme.TextPrimary);
+            word.alignment = TextAlignmentOptions.MidlineLeft;
+            word.textWrappingMode = TextWrappingModes.NoWrap;
+            word.overflowMode = TextOverflowModes.Ellipsis;
+            word.richText = false;
+            word.raycastTarget = false;
+            word.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+
+            var reading = NewLabel("Reading", rt, "", _theme.CaptionSize, FontStyles.Normal, _theme.TextSecondary);
+            reading.alignment = TextAlignmentOptions.MidlineRight;
+            reading.textWrappingMode = TextWrappingModes.NoWrap;
+            reading.overflowMode = TextOverflowModes.Ellipsis;
+            reading.richText = false;
+            reading.raycastTarget = false;
+            var readingLe = reading.gameObject.AddComponent<LayoutElement>();
+            readingLe.preferredWidth = 260;
+
+            // Difficult mark: small dot in the danger colour.
+            var mark = NewRect("DifficultMark", rt);
+            var markImg = mark.gameObject.AddComponent<Image>();
+            markImg.sprite = FilledCircle();
+            markImg.preserveAspect = true;
+            markImg.color = _theme.Danger;
+            markImg.raycastTarget = false;
+            var markLe = mark.gameObject.AddComponent<LayoutElement>();
+            markLe.preferredWidth = 36;
+            markLe.preferredHeight = 36;
+            mark.gameObject.SetActive(false);
+
+            // Two circles: study (link colour) and reverse study (S16, violet).
+            var fill = BuildProgressCircle(rt, "ProgressTrack", _theme.Link);
+            var reverseColor = new Color(0.761f, 0.6f, 0.988f, 1f);
+            var reverseFill = BuildProgressCircle(rt, "ReverseTrack", reverseColor);
+
+            var row = rt.gameObject.AddComponent<WordListRow>();
+            var so = new SerializedObject(row);
+            so.FindProperty("_button").objectReferenceValue = button;
+            so.FindProperty("_word").objectReferenceValue = word;
+            so.FindProperty("_reading").objectReferenceValue = reading;
+            so.FindProperty("_difficultMark").objectReferenceValue = mark.gameObject;
+            so.FindProperty("_progressFill").objectReferenceValue = fill;
+            so.FindProperty("_progressColor").colorValue = _theme.Link;
+            so.FindProperty("_reverseFill").objectReferenceValue = reverseFill;
+            so.FindProperty("_reverseColor").colorValue = reverseColor;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var path = "Assets/_Project/Prefabs/Widgets/WordRow.prefab";
+            var prefab = PrefabUtility.SaveAsPrefabAsset(rt.gameObject, path);
+            Object.DestroyImmediate(rt.gameObject);
+            return prefab.GetComponent<WordListRow>();
+        }
+
+        /// <summary>Scrollable popup body; the popup fits the LayoutElement height to its content.</summary>
+        private static RectTransform BuildPopupBody(RectTransform panel, out ScrollRect scroll, out LayoutElement bodyLayout)
+        {
+            var body = NewRect("Body", panel);
+            bodyLayout = body.gameObject.AddComponent<LayoutElement>();
+            bodyLayout.preferredHeight = 400;
+            scroll = body.gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+
+            var viewport = NewRect("Viewport", body);
+            Stretch(viewport);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var content = NewRect("BodyContent", viewport);
+            content.anchorMin = new Vector2(0, 1);
+            content.anchorMax = new Vector2(1, 1);
+            content.pivot = new Vector2(0.5f, 1);
+            content.sizeDelta = Vector2.zero;
+            var vlg = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 32;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            content.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            scroll.viewport = viewport;
+            scroll.content = content;
+            return content;
+        }
+
+        private static WordCardPopup BuildWordCardPopup(RectTransform popupLayer)
+        {
+            var root = NewPopupRoot("WordCardPopup", popupLayer, out var panel);
+            var popup = root.gameObject.AddComponent<WordCardPopup>();
+            // S17: the card fills the (safe) screen; the body takes the height the buttons leave.
+            root.gameObject.AddComponent<SafeAreaFitter>();
+            Object.DestroyImmediate(panel.GetComponent<ContentSizeFitter>());
+            panel.anchorMin = Vector2.zero;
+            panel.anchorMax = Vector2.one;
+            panel.offsetMin = new Vector2(32, 32);
+            panel.offsetMax = new Vector2(-32, -32);
+            var content = BuildPopupBody(panel, out var scroll, out var bodyLayout);
+            bodyLayout.preferredHeight = 0;
+            bodyLayout.minHeight = 200;
+            bodyLayout.flexibleHeight = 1;
+            // The labels ignore raycasts: without this the panel takes every drag and the body never scrolls.
+            scroll.viewport.gameObject.AddComponent<Image>().color = Color.clear;
+
+            var word = NewLabel("Word", content, "", _theme.KanjiMaxSize, FontStyles.Normal, _theme.Link);
+            word.enableAutoSizing = true;
+            // Long readings (reverse study, S16) shrink and wrap to 2 lines instead of being cut.
+            word.fontSizeMin = 56;
+            word.fontSizeMax = _theme.KanjiMaxSize;
+            word.textWrappingMode = TextWrappingModes.Normal;
+            word.overflowMode = TextOverflowModes.Ellipsis;
+            word.richText = false;
+            word.parseCtrlCharacters = false;
+            word.raycastTarget = false;
+            word.gameObject.AddComponent<LayoutElement>().preferredHeight = 280;
+
+            var sentence = NewLabel("Sentence", content, "", _theme.BodySize, FontStyles.Normal, _theme.TextPrimary);
+            sentence.textWrappingMode = TextWrappingModes.Normal;
+            sentence.lineSpacing = 10;
+            sentence.richText = false;
+            sentence.parseCtrlCharacters = false;
+            sentence.raycastTarget = false;
+
+            var rowSentenceReading = BuildDetailRow(content, "RowSentenceReading", UiStrings.FieldSentenceReading, _theme.BodySize, _theme.TextPrimary, out var sentenceReading);
+            var rowReading = BuildDetailRow(content, "RowReading", UiStrings.FieldReading, _theme.ReadingSize, _theme.TextPrimary, out var reading);
+            var rowMeaning = BuildDetailRow(content, "RowMeaning", UiStrings.FieldMeaning, _theme.BodySize, _theme.TextPrimary, out var meaning);
+            var rowSentenceMeaning = BuildDetailRow(content, "RowSentenceMeaning", UiStrings.FieldSentenceMeaning, _theme.BodySize, _theme.TextSecondary, out var sentenceMeaning);
+
+            // S17: finger drawing pad (reverse study only), under the body.
+            var drawArea = NewRect("DrawArea", panel);
+            var drawBg = drawArea.gameObject.AddComponent<Image>();
+            drawBg.sprite = _theme.PanelSprite; // InputSprite has no vertical border and deforms when this tall
+            drawBg.type = Image.Type.Sliced;
+            drawBg.pixelsPerUnitMultiplier = _theme.SlicedPpuMultiplier;
+            drawBg.color = _theme.Background;
+            var drawLe = drawArea.gameObject.AddComponent<LayoutElement>();
+            drawLe.preferredHeight = 640;
+            drawLe.minHeight = 400;
+            var padRt = NewRect("Pad", drawArea);
+            Stretch(padRt);
+            padRt.offsetMin = new Vector2(8, 8);
+            padRt.offsetMax = new Vector2(-8, -8);
+            var padImage = padRt.gameObject.AddComponent<RawImage>();
+            padImage.color = new Color(1f, 1f, 1f, 0f); // invisible until the first texture
+            padImage.raycastTarget = true;
+            var pad = padRt.gameObject.AddComponent<DrawingPad>();
+            var clearDrawing = NewButton("BtnClearDrawing", drawArea, UiStrings.ClearDrawing, 112, ButtonStyle.Secondary);
+            var clearRt = (RectTransform)clearDrawing.transform;
+            clearRt.anchorMin = clearRt.anchorMax = new Vector2(1, 1);
+            clearRt.pivot = new Vector2(1, 1);
+            clearRt.sizeDelta = new Vector2(220, 112);
+            clearRt.anchoredPosition = new Vector2(-16, -16);
+            drawArea.gameObject.SetActive(false);
+
+            // S15: difficult toggle (both modes), Resolve + green/red + swipe (study mode).
+            var difficult = BuildAnswerButton("BtnDifficult", panel, UiStrings.AddToDifficultWords, _theme.IconPlus, ButtonStyle.Secondary);
+            difficult.GetComponent<LayoutElement>().preferredHeight = 144;
+            var difficultIcon = difficult.transform.Find("Icon").GetComponent<Image>();
+            difficultIcon.color = _theme.TextPrimary;
+            var difficultLabel = difficult.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+            difficultLabel.color = _theme.TextPrimary;
+            difficult.gameObject.SetActive(false);
+
+            var answerRow = NewRect("AnswerRow", panel);
+            var ahlg = answerRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            ahlg.spacing = 32;
+            ahlg.childControlWidth = true;
+            ahlg.childControlHeight = true;
+            ahlg.childForceExpandWidth = true;
+            ahlg.childForceExpandHeight = true;
+            var answerLe = answerRow.gameObject.AddComponent<LayoutElement>();
+            answerLe.preferredHeight = 160;
+            answerLe.flexibleHeight = 0; // the row's force-expand would otherwise take half of the free height from the body
+            var didntKnow = BuildAnswerButton("BtnDidntKnow", answerRow, UiStrings.DidntKnow, _theme.IconCross, ButtonStyle.Danger);
+            var knew = BuildAnswerButton("BtnKnew", answerRow, UiStrings.Knew, _theme.IconCheck, ButtonStyle.Success);
+            answerRow.gameObject.SetActive(false);
+            var reveal = NewButton("BtnReveal", panel, UiStrings.Resolve, 160, ButtonStyle.Primary);
+            reveal.gameObject.SetActive(false);
+
+            var close = NewButton("BtnClose", panel, UiStrings.Close, 160, ButtonStyle.Secondary);
+
+            var swipe = panel.gameObject.AddComponent<CardSwipe>();
+            var swipeSo = new SerializedObject(swipe);
+            swipeSo.FindProperty("_scroll").objectReferenceValue = scroll;
+            swipeSo.FindProperty("_tintTarget").objectReferenceValue = panel.GetComponent<Image>();
+            swipeSo.FindProperty("_greenTint").colorValue = _theme.Success;
+            swipeSo.FindProperty("_redTint").colorValue = _theme.Danger;
+            swipeSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var so = new SerializedObject(popup);
+            so.FindProperty("_btnDifficult").objectReferenceValue = difficult;
+            so.FindProperty("_difficultLabel").objectReferenceValue = difficultLabel;
+            so.FindProperty("_difficultIcon").objectReferenceValue = difficultIcon;
+            so.FindProperty("_iconPlus").objectReferenceValue = _theme.IconPlus;
+            so.FindProperty("_iconCheck").objectReferenceValue = _theme.IconCheck;
+            so.FindProperty("_iconPlusColor").colorValue = _theme.TextPrimary;
+            so.FindProperty("_btnReveal").objectReferenceValue = reveal;
+            so.FindProperty("_answerRow").objectReferenceValue = answerRow.gameObject;
+            so.FindProperty("_btnKnew").objectReferenceValue = knew;
+            so.FindProperty("_btnDidntKnow").objectReferenceValue = didntKnow;
+            so.FindProperty("_swipe").objectReferenceValue = swipe;
+            so.FindProperty("_word").objectReferenceValue = word;
+            so.FindProperty("_sentence").objectReferenceValue = sentence;
+            so.FindProperty("_rowSentenceReading").objectReferenceValue = rowSentenceReading;
+            so.FindProperty("_sentenceReading").objectReferenceValue = sentenceReading;
+            so.FindProperty("_rowReading").objectReferenceValue = rowReading;
+            so.FindProperty("_reading").objectReferenceValue = reading;
+            so.FindProperty("_rowMeaning").objectReferenceValue = rowMeaning;
+            so.FindProperty("_meaning").objectReferenceValue = meaning;
+            so.FindProperty("_rowSentenceMeaning").objectReferenceValue = rowSentenceMeaning;
+            so.FindProperty("_sentenceMeaning").objectReferenceValue = sentenceMeaning;
+            so.FindProperty("_btnClose").objectReferenceValue = close;
+            so.FindProperty("_body").objectReferenceValue = scroll;
+            so.FindProperty("_bodyLayout").objectReferenceValue = bodyLayout;
+            so.FindProperty("_bodyContent").objectReferenceValue = content;
+            so.FindProperty("_fillScreen").boolValue = true;
+            so.FindProperty("_drawArea").objectReferenceValue = drawArea.gameObject;
+            so.FindProperty("_pad").objectReferenceValue = pad;
+            so.FindProperty("_btnClearDrawing").objectReferenceValue = clearDrawing;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return popup;
+        }
+
+        private static WordListMenuPopup BuildWordListMenuPopup(RectTransform popupLayer)
+        {
+            var root = NewPopupRoot("WordListMenuPopup", popupLayer, out var panel);
+            var popup = root.gameObject.AddComponent<WordListMenuPopup>();
+            var title = NewLabel("Title", panel, "", _theme.TitleSize, FontStyles.Bold, _theme.TextPrimary);
+            title.maxVisibleLines = 2;
+            title.overflowMode = TextOverflowModes.Ellipsis;
+            title.richText = false;
+            title.raycastTarget = false;
+            var study = NewButton("BtnStudy", panel, UiStrings.StudyWords, 160, ButtonStyle.Primary);
+            var studyReverse = NewButton("BtnStudyReverse", panel, UiStrings.StudyReverse, 160, ButtonStyle.Primary);
+            var addWords = NewButton("BtnAddWords", panel, UiStrings.AddWords, 160, ButtonStyle.Primary);
+            var close = NewButton("BtnClose", panel, UiStrings.Close, 144, ButtonStyle.Secondary);
+            var so = new SerializedObject(popup);
+            so.FindProperty("_title").objectReferenceValue = title;
+            so.FindProperty("_btnAddWords").objectReferenceValue = addWords;
+            so.FindProperty("_btnStudy").objectReferenceValue = study;
+            so.FindProperty("_btnStudyReverse").objectReferenceValue = studyReverse;
+            so.FindProperty("_btnClose").objectReferenceValue = close;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return popup;
+        }
+
+        private static AddWordsPopup BuildAddWordsPopup(RectTransform popupLayer)
+        {
+            var root = NewPopupRoot("AddWordsPopup", popupLayer, out var panel);
+            var popup = root.gameObject.AddComponent<AddWordsPopup>();
+            var title = NewLabel("Title", panel, UiStrings.AddWords, _theme.TitleSize, FontStyles.Bold, _theme.TextPrimary);
+            title.raycastTarget = false;
+            var hint = NewLabel("Hint", panel, UiStrings.AddWordsHint, _theme.CaptionSize, FontStyles.Normal, _theme.TextSecondary);
+            hint.alignment = TextAlignmentOptions.TopLeft;
+            hint.textWrappingMode = TextWrappingModes.Normal;
+            hint.richText = false;
+            hint.raycastTarget = false;
+
+            var field = BuildNameField(panel, out var placeholder, out _);
+            field.name = "PasteField";
+            field.GetComponent<LayoutElement>().preferredHeight = 520;
+            field.lineType = TMP_InputField.LineType.MultiLineNewline;
+            field.characterLimit = 0;
+            field.textComponent.alignment = TextAlignmentOptions.TopLeft;
+            field.textComponent.textWrappingMode = TextWrappingModes.NoWrap;
+            field.textComponent.fontSize = 36;
+            field.pointSize = 36;
+            placeholder.alignment = TextAlignmentOptions.TopLeft;
+            placeholder.fontSize = 36;
+            placeholder.text = UiStrings.AddWordsPlaceholder;
+            var area = field.textViewport;
+            area.offsetMin = new Vector2(32, 24);
+            area.offsetMax = new Vector2(-32, -24);
+
+            var error = NewLabel("ErrorText", panel, "", _theme.CaptionSize, FontStyles.Normal, _theme.Error);
+            error.alignment = TextAlignmentOptions.TopLeft;
+            error.textWrappingMode = TextWrappingModes.Normal;
+            error.maxVisibleLines = 3;
+            error.overflowMode = TextOverflowModes.Ellipsis;
+            error.richText = false;
+            error.raycastTarget = false;
+            error.gameObject.SetActive(false);
+
+            var paste = NewButton("BtnPaste", panel, UiStrings.Paste, 144, ButtonStyle.Secondary);
+
+            var buttons = NewRect("Buttons", panel);
+            var hlg = buttons.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 32;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+            buttons.gameObject.AddComponent<LayoutElement>().preferredHeight = 160;
+            var cancel = NewButton("BtnCancel", buttons, UiStrings.Cancel, 160, ButtonStyle.Secondary);
+            var add = NewButton("BtnAdd", buttons, UiStrings.Add, 160, ButtonStyle.Primary);
+
+            var so = new SerializedObject(popup);
+            so.FindProperty("_panel").objectReferenceValue = panel;
+            so.FindProperty("_field").objectReferenceValue = field;
+            so.FindProperty("_errorText").objectReferenceValue = error;
+            so.FindProperty("_btnPaste").objectReferenceValue = paste;
+            so.FindProperty("_btnCancel").objectReferenceValue = cancel;
+            so.FindProperty("_btnAdd").objectReferenceValue = add;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return popup;
+        }
+
+        private static DuplicateWordsPopup BuildDuplicateWordsPopup(RectTransform popupLayer)
+        {
+            var root = NewPopupRoot("DuplicateWordsPopup", popupLayer, out var panel);
+            var popup = root.gameObject.AddComponent<DuplicateWordsPopup>();
+            var title = NewLabel("Title", panel, "", _theme.TitleSize, FontStyles.Bold, _theme.TextPrimary);
+            title.richText = false;
+            title.raycastTarget = false;
+            var question = NewLabel("Question", panel, UiStrings.DuplicatesQuestion, _theme.CaptionSize, FontStyles.Normal, _theme.TextSecondary);
+            question.textWrappingMode = TextWrappingModes.Normal;
+            question.raycastTarget = false;
+
+            var content = BuildPopupBody(panel, out var scroll, out var bodyLayout);
+            var listText = NewLabel("List", content, "", _theme.BodySize, FontStyles.Normal, _theme.TextPrimary);
+            listText.alignment = TextAlignmentOptions.TopLeft;
+            listText.textWrappingMode = TextWrappingModes.Normal;
+            listText.lineSpacing = 10;
+            listText.richText = false;
+            listText.parseCtrlCharacters = false;
+            listText.raycastTarget = false;
+
+            var buttons = NewRect("Buttons", panel);
+            var hlg = buttons.gameObject.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 32;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+            buttons.gameObject.AddComponent<LayoutElement>().preferredHeight = 160;
+            var ignore = NewButton("BtnIgnore", buttons, UiStrings.Ignore, 160, ButtonStyle.Secondary);
+            var update = NewButton("BtnUpdate", buttons, UiStrings.UpdateWords, 160, ButtonStyle.Primary);
+            var cancel = NewButton("BtnCancel", panel, UiStrings.Cancel, 144, ButtonStyle.Secondary);
+
+            var so = new SerializedObject(popup);
+            so.FindProperty("_title").objectReferenceValue = title;
+            so.FindProperty("_list").objectReferenceValue = listText;
+            so.FindProperty("_body").objectReferenceValue = scroll;
+            so.FindProperty("_bodyLayout").objectReferenceValue = bodyLayout;
+            so.FindProperty("_bodyContent").objectReferenceValue = content;
+            so.FindProperty("_btnIgnore").objectReferenceValue = ignore;
+            so.FindProperty("_btnUpdate").objectReferenceValue = update;
+            so.FindProperty("_btnCancel").objectReferenceValue = cancel;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return popup;
         }
 
         // ---------- UI helpers ----------

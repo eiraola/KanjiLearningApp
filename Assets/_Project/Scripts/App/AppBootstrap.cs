@@ -5,6 +5,7 @@ using Kanji.Core.Library;
 using Kanji.Core.Navigation;
 using Kanji.Core.Parsing;
 using Kanji.Core.Text;
+using Kanji.Core.Words;
 using Kanji.Infrastructure.Files;
 using Kanji.Infrastructure.Storage;
 using Kanji.UI;
@@ -26,6 +27,10 @@ namespace Kanji.App
         [SerializeField] private KanjiPopup _kanjiPopup;
         [SerializeField] private ConfirmPopup _confirmPopup;
         [SerializeField] private NameInputPopup _nameInputPopup;
+        [SerializeField] private WordCardPopup _wordCardPopup;
+        [SerializeField] private WordListMenuPopup _wordListMenuPopup;
+        [SerializeField] private AddWordsPopup _addWordsPopup;
+        [SerializeField] private DuplicateWordsPopup _duplicateWordsPopup;
         [SerializeField] private ScreenView[] _screenPrefabs;
         [SerializeField] private BackButtonRouter _backButtonRouter;
         [SerializeField] private string _editorSampleFile = "Assets/_Project/Tests/Fixtures/Text/sample-utf8.txt"; // Editor only
@@ -62,6 +67,10 @@ namespace Kanji.App
             _storyPopup.Init(popups);
             _confirmPopup.Init(popups);
             _nameInputPopup.Init(popups);
+            _wordCardPopup.Init(popups);
+            _wordListMenuPopup.Init(popups);
+            _addWordsPopup.Init(popups);
+            _duplicateWordsPopup.Init(popups);
             var navigator = new ScreenNavigator(screens, _transition);
             var decoder = new TextDecoder(TextDecoder.TryCreateShiftJis());
             Debug.Log($"[Kanji] Shift-JIS available: {decoder.SupportsShiftJis}");
@@ -73,6 +82,8 @@ namespace Kanji.App
             var difficultRepo = new JsonDifficultKanjiRepository(fileSystem, Application.persistentDataPath);
             RunDifficultMigration(library, difficultRepo);
             library.Deleted += id => difficultStore.DeleteStory(id);
+            var wordLists = new WordListLibrary(new JsonWordListRepository(fileSystem, Application.persistentDataPath),
+                () => Guid.NewGuid().ToString("N"), () => DateTime.UtcNow);
             _kanjiPopup.Init(popups, null, _toast, difficultStore);
             LogStorageSummary(fileSystem, library);
             foreach (var view in instances)
@@ -84,6 +95,8 @@ namespace Kanji.App
                     case DifficultListScreen dl: dl.Init(navigator, library, difficultStore, storyId => navigator.Push(ScreenId.DifficultGrid, storyId)); break;
                     case DifficultGridScreen grid: grid.Init(navigator, library, difficultStore, _kanjiPopup); break;
                     case ReaderScreen reader: reader.Init(navigator, library, _toast, _kanjiPopup); break;
+                    case WordListsScreen lists: lists.Init(navigator, wordLists, _nameInputPopup, _toast); break;
+                    case WordListScreen wl: wl.Init(navigator, wordLists, _wordCardPopup, _wordListMenuPopup, _addWordsPopup, _duplicateWordsPopup, _toast); break;
                     case EmptyScreen empty: empty.Init(navigator); break;
                     case StatsScreen stats: stats.Init(navigator); break;
                     case LoadStoriesScreen load: load.Init(navigator, picker, decoder, new StoryParser(), library, _nameInputPopup, _toast); break;

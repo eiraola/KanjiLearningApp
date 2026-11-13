@@ -18,6 +18,8 @@ namespace Kanji.UI
         /// <summary>Null hides the statistics block (edit mode).</summary>
         public LoadStats? Stats;
         public Func<string, NameResult> Validate;
+        /// <summary>Inline message for a duplicate name ({0} = existing name). Null: the story message.</summary>
+        public string DuplicateFormat;
     }
 
     /// <summary>
@@ -119,7 +121,7 @@ namespace Kanji.UI
             NameResult r = _request.Validate(text);
             bool unchanged = !string.IsNullOrEmpty(_request.InitialText) && text == _request.InitialText;
             if (r.Check == NameCheck.Duplicate)
-                ShowError(string.Format(CultureInfo.InvariantCulture, UiStrings.NameDuplicate, r.ConflictingName));
+                ShowError(string.Format(CultureInfo.InvariantCulture, _request.DuplicateFormat ?? UiStrings.NameDuplicate, r.ConflictingName));
             else
                 HideError();
             SetAccept(r.Check == NameCheck.Ok && !unchanged);

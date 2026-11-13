@@ -6,6 +6,35 @@ namespace Kanji.UI
         public const string LoadStories = "Cargar historias";
         public const string ReadStories = "Leer historias";
         public const string DifficultKanjis = "Kanjis complicados";
+        public const string WordLists = "Listas";
+        public const string EmptyWordLists = "Aún no tienes listas. Pulsa + para crear una.";
+        public const string NewWordListTitle = "Nueva lista";
+        public const string WordListNamePlaceholder = "Nombre de la lista";
+        public const string WordListNameDuplicate = "Ya existe una lista llamada '{0}'. Elige otro nombre.";
+        public const string WordListCreated = "Lista '{0}' creada";
+        public const string WordListOpenFailed = "No se pudo abrir la lista.";
+        public const string EmptyWordList = "Esta lista no tiene palabras. Añádelas desde el menú de arriba a la derecha.";
+        public const string AddWords = "Añadir palabras";
+        public const string AddWordsHint = "Pega líneas separadas por tabuladores. La primera línea es la cabecera: Word, Sentence, Reading, Meaning, SentenceMeaning, SentenceReading (en cualquier orden; las que falten quedan vacías).";
+        public const string AddWordsPlaceholder = "Pega aquí el texto…";
+        public const string Paste = "Pegar";
+        public const string Add = "Añadir";
+        public const string ClipboardEmpty = "El portapapeles está vacío.";
+        public const string PasteEmpty = "Pega o escribe al menos una línea.";
+        public const string PasteNoTabs = "No hay tabuladores en el texto. Usa el botón Pegar para copiarlo tal cual.";
+        public const string DuplicatesTitle = "Palabras repetidas ({0})";
+        public const string DuplicatesQuestion = "Ya están en la lista o se repiten en el texto. ¿Qué hago con ellas?";
+        public const string Ignore = "Ignorar";
+        public const string UpdateWords = "Actualizar";
+        public const string FieldSentenceReading = "Lectura de la frase";
+        public const string StudyWords = "Estudiar";
+        public const string StudyReverse = "Aprendizaje inverso";
+        public const string ClearDrawing = "Borrar";
+        public const string AddToDifficultWords = "Añadir a complicadas";
+        public const string InDifficultWords = "Ya en complicadas";
+        public const string FilterAll = "Todas ({0})";
+        public const string FilterDifficult = "Complicadas ({0})";
+        public const string EmptyDifficultWords = "No hay palabras complicadas en esta lista. Márcalas desde su tarjeta.";
         public const string EmptyDifficult = "Aún no has añadido kanjis";
         public const string AddToDifficult = "Añadir a complicados";
         public const string InDifficult = "Ya en complicados";
@@ -74,6 +103,26 @@ namespace Kanji.UI
         public static string ParseWarnings(int n) =>
             n == 1 ? "1 aviso al analizar el archivo"
                    : n.ToString(System.Globalization.CultureInfo.InvariantCulture) + " avisos al analizar el archivo";
+
+        public static string WordCount(int n) =>
+            n == 1 ? "1 palabra" : n.ToString(System.Globalization.CultureInfo.InvariantCulture) + " palabras";
+
+        public static string PasteNoWords(int invalidLines) =>
+            invalidLines > 0
+                ? "No se encontró ninguna palabra (" + invalidLines.ToString(System.Globalization.CultureInfo.InvariantCulture) + " líneas no válidas)."
+                : "No se encontró ninguna palabra.";
+
+        /// <summary>"8 añadidas · 1 actualizada · 2 líneas no válidas"; only non-zero parts.</summary>
+        public static string ImportSummary(int added, int updated, int ignored, int invalidLines)
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var parts = new System.Collections.Generic.List<string>(4);
+            if (added > 0 || (updated == 0 && ignored == 0)) parts.Add(added.ToString(c) + (added == 1 ? " añadida" : " añadidas"));
+            if (updated > 0) parts.Add(updated.ToString(c) + (updated == 1 ? " actualizada" : " actualizadas"));
+            if (ignored > 0) parts.Add(ignored.ToString(c) + (ignored == 1 ? " repetida ignorada" : " repetidas ignoradas"));
+            if (invalidLines > 0) parts.Add(invalidLines.ToString(c) + (invalidLines == 1 ? " línea no válida" : " líneas no válidas"));
+            return string.Join(" · ", parts);
+        }
 
         public static string Percent(int n) =>
             n.ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
